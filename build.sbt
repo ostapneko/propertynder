@@ -20,9 +20,13 @@ libraryDependencies += "org.scalatest" %% "scalatest" % scalaTestVersion % "test
 
 // Akka
 libraryDependencies += "com.typesafe.akka" %% "akka-stream" % "2.4.17"
-libraryDependencies ++= Seq("akka-http-core", "akka-http").map(
+libraryDependencies ++= Seq("akka-http-core", "akka-http", "akka-http-xml").map(
   "com.typesafe.akka" %% _ % "10.0.4"
 )
+
+//Logging
+libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.4.0"
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.7"
 
 // Cats
 libraryDependencies += "org.typelevel" %% "cats" % "0.9.0"
