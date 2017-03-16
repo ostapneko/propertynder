@@ -27,14 +27,15 @@ object Example extends App {
     (2.1, 1.0, 0.0)
   )).foreach { case (i, (x1, x2, label)) =>
     X(i, ::) := DenseVector(1, x1, x2).t
-    y(i to i) := label
+    y.update(i, label)
     if (label > 0.5)
       pos(i, ::) := DenseVector(x1, x2).t
     else
       neg(i - 5, ::) := DenseVector(x1, x2).t
   }
 
-  val GradientDescentResult(theta, cost) = LogisticRegression.runGradientDescent(DenseVector.zeros[Double](3), X, y, maxIter = 10000)
+  val GradientDescentResult(theta, cost) =
+    LogisticRegression.runGradientDescent(DenseVector.zeros[Double](3), X, y, maxIter = 10000, regularization = 0.1)
 
   println(s"Theta: $theta")
   println(s"Cost: $cost")
