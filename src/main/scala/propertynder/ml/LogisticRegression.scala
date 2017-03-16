@@ -18,7 +18,10 @@ object LogisticRegression {
     val thetaNoFirstTerm = theta.copy
     thetaNoFirstTerm.update(0, 0.0)
     val costReg = sum(thetaNoFirstTerm ^:^ 2.0) * regularization / 2 / m
-    val cost = - (labels.t * log(hs) + (1.0 -:- labels).t * log(1.0 -:- hs)) / m + costReg
+    val x1 = labels.t * log(hs +:+ 1.0E-4) // avoid NaN
+    val x2 = (1.0 -:- labels).t
+    val x3 = log((1.0 + 1.0E-4) -:- hs) // avoid NaN
+    val cost = - (x1 + x2 * x3) / m + costReg
     val gradReg = (regularization / m) *:* thetaNoFirstTerm
     val grad = examples.t * (hs - labels) /:/ m + gradReg
 
@@ -29,10 +32,9 @@ object LogisticRegression {
     initTheta: DenseVector[Double],
     examples: DenseMatrix[Double],
     labels: DenseVector[Double],
-    maxIter: Int = 1000,
-    deltaCostThreshold: Double = 1.0E-4,
-    gradientStep: Double = 1.0,
-    alpha: Double = 1,
+    maxIter: Int = 100000,
+    deltaCostThreshold: Double = 1.0E-6,
+    alpha: Double = 0.001,
     regularization: Double = 1
   ): GradientDescentResult = {
     var step = 1
@@ -49,5 +51,15 @@ object LogisticRegression {
     }
 
     GradientDescentResult(theta, cost.get)
+  }
+
+  def predictLinear(x: DenseVector[Double], theta: DenseVector[Double]): Boolean = {
+    val biased = DenseVector.vertcat(DenseVector.ones[Double](1), x)
+    biased.t * theta > 0.5
+  }
+
+  def predictQuadratic(v: DenseVector[Double], theta: DenseVector[Double]): Boolean = {
+    val transformed = Transform.toQuadraticParameters(v)
+    transformed.t * theta > 0.5
   }
 }

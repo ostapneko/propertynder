@@ -3,7 +3,6 @@ package propertynder
 import java.io.File
 
 import breeze.linalg._
-import breeze.plot._
 import propertynder.ml.LogisticRegression
 import propertynder.ml.LogisticRegression.GradientDescentResult
 
@@ -15,7 +14,8 @@ object Example {
     }
 
     val file = new File(args.head)
-    val trainingSet = Loader.loadLinear(file)
+    val testSize = 100
+    val trainingSet = Loader.loadQuadratic(file, skip = Some(testSize))
     val m = trainingSet.labels.length
     val n = trainingSet.examples.cols
 
@@ -25,7 +25,8 @@ object Example {
         trainingSet.examples,
         trainingSet.labels,
         maxIter = 10000,
-        regularization = 0.1
+        regularization = 0.1,
+        deltaCostThreshold = 1.0E-8
       )
 
     var pos = DenseMatrix.zeros[Double](0, n - 1)
@@ -41,15 +42,18 @@ object Example {
     println(s"Theta: $theta")
     println(s"Cost: $cost")
 
-    val f = Figure()
-    val p = f.subplot(0)
-    val x = linspace(0.0, 5.0)
+    val tests = csvread(file, ',')(0 to testSize, ::)
+    var successes = 0
 
-    p += plot(x, 0.0 -:- (theta(0) +:+ theta(1) *:* x) /:/ theta(2))
-    p += plot(pos(::, 0), pos(::, 1), '+', colorcode = "green")
-    p += plot(neg(::, 0), neg(::, 1), '+', colorcode = "red")
-    f.saveas("test.png")
+    (0 until testSize).foreach { i =>
+      val input = tests(i, 0 to -2).t
+      val isTrue = tests(i, -1) > 0.5
+      val prediction = LogisticRegression.predictQuadratic(input, theta)
+      if (prediction == isTrue) {
+        successes += 1
+      }
+    }
 
-
+    println(s"predictions: $successes/$testSize")
   }
 }
