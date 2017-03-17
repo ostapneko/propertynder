@@ -1,52 +1,59 @@
 package propertynder
 
+import java.io.File
+
 import breeze.linalg._
-import breeze.plot._
 import propertynder.ml.LogisticRegression
 import propertynder.ml.LogisticRegression.GradientDescentResult
 
-object Example extends App {
-  val X = DenseMatrix.zeros[Double](10, 3)
-  val y = DenseVector.zeros[Double](10)
+object Example {
+  def main(args: Array[String]): Unit = {
+    if (args.length < 1) {
+      sys.error("expected the training set file as argument")
+      sys.exit(1)
+    }
 
-  val pos = DenseMatrix.zeros[Double](5, 2)
-  val neg = DenseMatrix.zeros[Double](5, 2)
+    val file = new File(args.head)
+    val testSize = 100
+    val trainingSet = Loader.loadQuadratic(file, skip = Some(testSize))
+    val m = trainingSet.labels.length
+    val n = trainingSet.examples.cols
 
-  (0 to 9).zip(Seq(
-    // -- positive examples
-    (1.0, 1.0, 1.0),
-    (2.9, 0.0, 1.0),
-    (0.0, 2.9, 1.0),
-    (0.5, 2.3, 1.0),
-    (2.3, 0.5, 1.0),
-    // -- negative examples
-    (3.1, 0.1, 0.0),
-    (2.0, 2.0, 0.0),
-    (0.1, 3.1, 0.0),
-    (1.0, 2.1, 0.0),
-    (2.1, 1.0, 0.0)
-  )).foreach { case (i, (x1, x2, label)) =>
-    X(i, ::) := DenseVector(1, x1, x2).t
-    y.update(i, label)
-    if (label > 0.5)
-      pos(i, ::) := DenseVector(x1, x2).t
-    else
-      neg(i - 5, ::) := DenseVector(x1, x2).t
+    val GradientDescentResult(theta, cost) =
+      LogisticRegression.runGradientDescent(
+        DenseVector.zeros[Double](n),
+        trainingSet.examples,
+        trainingSet.labels,
+        maxIter = 10000,
+        regularization = 0.1,
+        deltaCostThreshold = 1.0E-8
+      )
+
+    var pos = DenseMatrix.zeros[Double](0, n - 1)
+    var neg = DenseMatrix.zeros[Double](0, n - 1)
+
+    (0 until m).foreach { i =>
+      if (trainingSet.labels(i) > 0.5)
+        pos = DenseMatrix.vertcat(pos, trainingSet.examples(i to i, 1 until n))
+      else
+        neg = DenseMatrix.vertcat(neg, trainingSet.examples(i to i, 1 until n))
+    }
+
+    println(s"Theta: $theta")
+    println(s"Cost: $cost")
+
+    val tests = csvread(file, ',')(0 to testSize, ::)
+    var successes = 0
+
+    (0 until testSize).foreach { i =>
+      val input = tests(i, 0 to -2).t
+      val isTrue = tests(i, -1) > 0.5
+      val prediction = LogisticRegression.predictQuadratic(input, theta)
+      if (prediction == isTrue) {
+        successes += 1
+      }
+    }
+
+    println(s"predictions: $successes/$testSize")
   }
-
-  val GradientDescentResult(theta, cost) =
-    LogisticRegression.runGradientDescent(DenseVector.zeros[Double](3), X, y, maxIter = 10000, regularization = 0.1)
-
-  println(s"Theta: $theta")
-  println(s"Cost: $cost")
-
-  val f = Figure()
-  val p = f.subplot(0)
-  val x = linspace(0.0, 5.0)
-
-  p += plot(x, 0.0 -:- (theta(0) +:+ theta(1) *:* x) /:/ theta(2))
-  p += plot(pos(::, 0), pos(::, 1), '+', colorcode = "green")
-  p += plot(neg(::, 0), neg(::, 1), '+', colorcode = "red")
-  f.saveas("test.png")
-
 }
