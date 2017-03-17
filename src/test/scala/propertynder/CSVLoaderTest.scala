@@ -4,13 +4,14 @@ import java.io.File
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import org.scalatest.{FreeSpec, Matchers}
+import propertynder.ml.CSVLoader
 
-class LoaderTest extends FreeSpec with Matchers {
+class CSVLoaderTest extends FreeSpec with Matchers {
   "Loader" - {
     "loads CSV files into a quadratic training set" in {
       val file = new File(getClass.getResource("/training-set.csv").getPath)
 
-      val trainingSet = Loader.loadQuadratic(file)
+      val trainingSet = CSVLoader.loadQuadratic(file)
 
       trainingSet.labels should ===(DenseVector[Double](1, 0))
 
