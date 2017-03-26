@@ -22,10 +22,9 @@ object Client extends LazyLogging {
   private val parallelism = 1
   private val baseUri: Uri = Uri("http://ws.seloger.com/search.xml?")
   // idtt represents the type of transaction, number 2 being sales (as opposed to rental)
-  private val params = Seq(("idtt", "2"))
-  private val postcodes: Inclusive = 75001 to 75020
+  private val params = Map("idtt" -> "2", "cp" -> "75")
 
-  private def urls: Seq[Uri] = postcodes.map(p => baseUri.withQuery(Query((("cp" -> p.toString) +: params).toMap)))
+  private def uri: Uri = baseUri.withQuery(Query(params))
 
   private def getRequest(uri: Uri): HttpRequest =
     Get(uri).addHeader(Accept(MediaRange(`application/xml`)))
@@ -57,7 +56,7 @@ object Client extends LazyLogging {
       logger.info(s"received element $el")
     }
 
-    Source.unfoldAsync[Option[HttpRequest], HttpResponse](Some(getRequest(urls.head)))(getWithPagination)
+    Source.unfoldAsync[Option[HttpRequest], HttpResponse](Some(getRequest(uri)))(getWithPagination)
       .mapAsync(parallelism)(XML.extractProperties)
       .toMat(sink)(Keep.right)
   }
